@@ -111,12 +111,13 @@ export class MatchingService {
   async createRequest(fromUserId: string, toUserId: string) {
     if (fromUserId === toUserId) throw new ForbiddenException('Cannot send request to yourself');
 
-    const existing = await this.prisma.matchRequest.findFirst({
-      where: { fromUserId, toUserId },
-    });
+    // Independent reads — check for an existing request and validate the target
+    // concurrently. Validation order (Conflict before NotFound) is preserved below.
+    const [existing, toUser] = await Promise.all([
+      this.prisma.matchRequest.findFirst({ where: { fromUserId, toUserId } }),
+      this.prisma.user.findUnique({ where: { id: toUserId } }),
+    ]);
     if (existing) throw new ConflictException('Request already exists');
-
-    const toUser = await this.prisma.user.findUnique({ where: { id: toUserId } });
     if (!toUser) throw new NotFoundException('User not found');
     if (toUser.status !== 'ACTIVE') throw new ForbiddenException('User is not available');
 
