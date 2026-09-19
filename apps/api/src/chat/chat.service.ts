@@ -113,12 +113,16 @@ export class ChatService {
     const match = await fetchChatMatch(this.prisma, matchId, userId);
     const { body, mediaUrl } = this.validate(dto);
 
-    const message = await this.prisma.message.create({
-      data: { matchId, senderId: userId, type: dto.type, body, mediaUrl },
-    });
-    const senderName = firstName(
-      (await this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { name: true } })).name,
-    );
+    // Create the message and read the sender's name concurrently — both are
+    // independent DB round-trips, so serializing them only adds latency to
+    // the hot "send message" path.
+    const [message, sender] = await Promise.all([
+      this.prisma.message.create({
+        data: { matchId, senderId: userId, type: dto.type, body, mediaUrl },
+      }),
+      this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { name: true } }),
+    ]);
+    const senderName = firstName(sender.name);
     const payload = toPayload(message, senderName);
 
     this.gateway.broadcastToUsers([match.userAId, match.userBId], payload);
