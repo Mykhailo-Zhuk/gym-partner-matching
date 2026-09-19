@@ -193,12 +193,17 @@ export class MatchingService {
   }
 }
 
+/** First token of a display name, or a fallback when empty. */
+function firstName(name: string): string {
+  return name.trim().split(/\s+/)[0] || 'Користувач';
+}
+
 export function toPreviewCard(
   user: User & { gym: { name: string } | null },
   rating?: { average: number; count: number },
 ): PreviewCard {
   return {
-    firstName: user.name.trim().split(/\s+/)[0] || 'Користувач',
+    firstName: firstName(user.name),
     level: user.level,
     goal: user.goal,
     gymName: user.gym?.name ?? null,
@@ -214,7 +219,7 @@ export function toSearchCard(
 ): SearchCard {
   return {
     id: user.id,
-    firstName: user.name.trim().split(/\s+/)[0] || 'Користувач',
+    firstName: firstName(user.name),
     photoUrl: user.photoUrl,
     bio: user.bio,
     level: user.level,
