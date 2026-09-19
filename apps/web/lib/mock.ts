@@ -106,7 +106,6 @@ export interface SearchFilters {
 
 /** Mirror matching.service.search: filter active partners, return up to N. */
 export function searchPartners(filters: SearchFilters, take = 12): Partner[] {
-  const f = (filters.goal && filters.level) || filters.goal || filters.level ? filters : filters;
   return PARTNERS.filter((p) => {
     if (filters.goal && p.goal !== filters.goal) return false;
     if (filters.level && p.level !== filters.level) return false;

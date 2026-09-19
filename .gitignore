@@ -1,13 +1,16 @@
+# deps
 node_modules/
+
+# next.js build
+.next/
+out/
+
+# misc
 dist/
-.env
-.env.*
-!.env.example
-!.env.*.example
 *.log
 .DS_Store
-coverage/
-apps/api/prisma/migrations/dev*
+.env
+
+# local tooling
+.claude/
 .gstack/
-results.tsv
-measure.sh
