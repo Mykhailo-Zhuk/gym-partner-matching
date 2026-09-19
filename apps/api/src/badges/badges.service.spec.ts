@@ -291,14 +291,22 @@ describe('BadgesService (unit)', () => {
     });
 
     it('returns true when streakWeeks >= 4', async () => {
-      // 4 dates in consecutive recent calendar weeks.
-      // streakWeeks counts backward from the current week; these 4 consecutive
-      // weekStarts are found in the map, giving streak >= 4.
+      // 4 dates in consecutive calendar weeks relative to TODAY (not hard-coded),
+      // so the test never rots as time passes. streakWeeks counts backward from
+      // the current week; the 4 most recent Monday week-starts always form a
+      // contiguous run of 4, giving streak >= 4.
+      const monday = (d: Date) => {
+        const x = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+        x.setUTCDate(x.getUTCDate() - ((x.getUTCDay() + 6) % 7)); // Monday = week start
+        return x;
+      };
+      const cur = monday(new Date()).getTime();
+      const DAY = 86_400_000;
       prisma.workout.findMany.mockResolvedValue([
-        { date: new Date('2026-08-03') }, // Mon
-        { date: new Date('2026-08-10') }, // Mon
-        { date: new Date('2026-08-17') }, // Mon
-        { date: new Date('2026-08-24') }, // Mon
+        { date: new Date(cur) }, // this week's Monday
+        { date: new Date(cur - 7 * DAY) },
+        { date: new Date(cur - 14 * DAY) },
+        { date: new Date(cur - 21 * DAY) },
       ]);
 
       const res = await service.award('u1', BADGE_RULES.STREAK_4);
