@@ -111,6 +111,19 @@ and MinIO ports are.
 - **Push notifications**: via `NotificationsService` facade → `FcmPushProvider` (with Firebase keys) or `LogPushProvider` (local, prints to console)
 - **Admin auth**: same `POST /auth/login` endpoint; admin routes protected by global `RolesGuard` requiring `role: "ADMIN"`
 
+## Web demo (Next.js, Vercel)
+
+`apps/web` — самостійний **Next.js** застосунок (демо продукту, **тільки мок-дані, без БД**), який
+деплоїться на Vercel **одним проєктом**. На відміну від NestJS API / Vite admin / Expo mobile,
+йому не потрібні Postgres, Redis чи MinIO.
+
+```bash
+cd apps/web && pnpm install && pnpm dev   # http://localhost:3001
+```
+
+**Vercel:** Import монорепо → Root Directory `apps/web` → build `pnpm --filter web build`.
+Сторінки: `/`, `/onboarding`, `/matches`, `/profile`, `/chat`, `/dashboard`. (Див. `apps/web/README.md`.)
+
 ## Troubleshooting
 
 **Port already in use**: Check `.env` for custom ports or stop conflicting services.

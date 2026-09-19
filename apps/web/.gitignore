@@ -1,0 +1,6 @@
+# build
+.next/
+out/
+dist/
+# deps
+node_modules/
