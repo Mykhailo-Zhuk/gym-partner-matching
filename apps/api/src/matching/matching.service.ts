@@ -80,7 +80,7 @@ export class MatchingService {
     // users. Both exclusion queries are independent — run them concurrently to cut
     // the endpoint's DB latency on the critical path.
     const uids = users.map((u) => u.id);
-    const [existing, matched] = await Promise.all([
+    const [existing, matched, ratings] = await Promise.all([
       this.prisma.matchRequest.findMany({
         where: {
           fromUserId: userId,
@@ -96,6 +96,10 @@ export class MatchingService {
         },
         select: { userAId: true, userBId: true },
       }),
+      // Ratings are independent of the exclusion queries — run them in the SAME
+      // parallel stage so they no longer add a 4th sequential DB round-trip to the
+      // critical path. Extra ids for excluded users are simply unused below.
+      this.ratingSummaries(uids),
     ]);
     const excluded = new Set(existing.map((r) => r.toUserId));
     for (const m of matched) {
@@ -103,7 +107,6 @@ export class MatchingService {
     }
 
     const eligible = users.filter((u) => !excluded.has(u.id));
-    const ratings = await this.ratingSummaries(eligible.map((u) => u.id));
     return { cards: shuffle(eligible).slice(0, 20).map((u) => toSearchCard(u, ratings.get(u.id))) };
   }
 
