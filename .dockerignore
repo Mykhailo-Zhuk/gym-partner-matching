@@ -1,0 +1,16 @@
+# Repo-root docker context — keep the build context small and secret-free.
+**/node_modules
+**/dist
+**/.expo
+**/.env
+**/.env.*
+!**/.env.example
+**/*.spec.ts
+**/test
+.git
+.github
+.gstack
+implementation
+docker-compose.yml
+docker-compose.prod.yml
+*.md

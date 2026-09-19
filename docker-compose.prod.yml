@@ -1,0 +1,128 @@
+# GymBrosUK — staging / production stack.
+# Same file for both environments; they differ only by the env file:
+#
+#   staging:    docker compose --env-file .env.staging    -f docker-compose.prod.yml up -d --build
+#   production: docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+#
+# Postgres/Redis/MinIO are NOT exposed to the host (internal network only);
+# the API and admin ports are. Put TLS in front (Caddy/nginx/ingress) for HTTPS.
+# The API container runs `prisma migrate deploy` on boot (idempotent).
+
+name: gymbros
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-gymbros}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the env file}
+      POSTGRES_DB: ${POSTGRES_DB:-gymbros}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gymbros}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:?Set S3_ACCESS_KEY in the env file}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:?Set S3_SECRET_KEY in the env file}
+    ports:
+      # Public: presigned upload URLs are generated against this endpoint and
+      # must be reachable from mobile clients, not just inside the compose network.
+      - "${MINIO_PORT:-9100}:9000"
+      - "${MINIO_CONSOLE_PORT:-9101}:9001"
+    volumes:
+      - miniodata:/data
+
+  # One-shot: make sure the uploads bucket exists before the API starts.
+  # (The API's own bucket bootstrap is dev-only; NODE_ENV=production skips it.)
+  minio-init:
+    image: minio/mc
+    restart: "no"
+    depends_on:
+      - minio
+    environment:
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_BUCKET: ${S3_BUCKET:-gymbros-uploads}
+    entrypoint: >
+      sh -c "
+        until mc alias set local http://minio:9000 $$S3_ACCESS_KEY $$S3_SECRET_KEY; do sleep 1; done
+        mc mb --ignore-existing local/$$S3_BUCKET
+        echo bucket ready
+      "
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      # Container-network URLs (override whatever the env file says)
+      DATABASE_URL: postgresql://${POSTGRES_USER:-gymbros}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-gymbros}
+      REDIS_URL: redis://redis:6379
+      # S3_ENDPOINT is used BOTH by the api container and embedded in presigned
+      # URLs — it must be the public address (host IP / domain), see env file.
+      S3_ENDPOINT: ${S3_ENDPOINT:?Set S3_ENDPOINT in the env file}
+      S3_REGION: ${S3_REGION:-eu-central-1}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+      S3_BUCKET: ${S3_BUCKET:-gymbros-uploads}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Set JWT_ACCESS_SECRET in the env file}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-900}
+      JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-2592000}
+      PREVIEW_RATE_LIMIT: ${PREVIEW_RATE_LIMIT:-30}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-}
+      FIREBASE_CLIENT_EMAIL: ${FIREBASE_CLIENT_EMAIL:-}
+      FIREBASE_PRIVATE_KEY: ${FIREBASE_PRIVATE_KEY:-}
+    ports:
+      - "${API_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
+
+  admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "${ADMIN_PORT:-8080}:80"
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:
