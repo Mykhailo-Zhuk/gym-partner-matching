@@ -1,4 +1,4 @@
-import { MatchingService, toCard, toPreviewCard, toSearchCard } from './matching.service';
+import { MatchingService, toPreviewCard, toSearchCard } from './matching.service';
 import type { User } from '@prisma/client';
 
 describe('MatchingService (unit)', () => {

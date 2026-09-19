@@ -235,9 +235,6 @@ export function toSearchCard(
   };
 }
 
-// Exported for tests
-export const toCard = toPreviewCard;
-
 function shuffle<T>(items: T[]): T[] {
   const arr = [...items];
   for (let i = arr.length - 1; i > 0; i--) {
