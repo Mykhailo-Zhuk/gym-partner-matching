@@ -199,10 +199,14 @@ export class GroupsService {
     if (!member || member.status === 'DECLINED') throw new NotFoundException('Group not found');
 
     const validated = this.validateMessage(dto);
-    const message = await this.prisma.groupMessage.create({
-      data: { groupId, senderId: userId, type: dto.type, body: validated.body, mediaUrl: validated.mediaUrl },
-    });
-    const me = await this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { name: true } });
+    // Create the group message and read the sender's name concurrently — two
+    // independent round-trips; serializing them only adds send-path latency.
+    const [message, me] = await Promise.all([
+      this.prisma.groupMessage.create({
+        data: { groupId, senderId: userId, type: dto.type, body: validated.body, mediaUrl: validated.mediaUrl },
+      }),
+      this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { name: true } }),
+    ]);
     const payload = toGroupPayload(message, firstName(me.name));
 
     // Fanout to the full member set minus the sender.
