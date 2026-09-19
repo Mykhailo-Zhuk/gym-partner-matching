@@ -228,3 +228,74 @@ export const THIS_WEEK: WorkoutRow[] = [
   { date: 'Пт', type: 'Плечі', sets: 4, reps: 10, weightKg: 55, kg: 2200 },
   { date: 'Сб', type: 'Ноги', sets: 5, reps: 5, weightKg: 120, kg: 3000 },
 ];
+
+// ---- Preserved product routes (from the 3-app monorepo), mock-backed ----
+
+export interface MatchListItem {
+  id: string;
+  partnerId: string;
+  partnerName: string;
+  partnerAvatar: string;
+  status: 'ACTIVE' | 'ENDED';
+  scheduledAt: string | null;
+  lastMessage: string;
+}
+
+export const MY_PAIRS: MatchListItem[] = [
+  { id: 'm1', partnerId: 'p2', partnerName: 'Дмитро Савченко', partnerAvatar: '💪', status: 'ACTIVE', scheduledAt: 'Сьогодні 19:00', lastMessage: 'Ок, бачимось о 19:00! 🔥' },
+  { id: 'm2', partnerId: 'p5', partnerName: 'Сергій Мельник', partnerAvatar: '🤺', status: 'ACTIVE', scheduledAt: 'Завтра 18:00', lastMessage: 'Запиши мене на завтра' },
+  { id: 'm3', partnerId: 'p7', partnerName: 'Іван Петренко', partnerAvatar: '🤗', status: 'ACTIVE', scheduledAt: null, lastMessage: 'Дякую за пораду!' },
+];
+
+export interface IncomingRequest {
+  id: string;
+  fromName: string;
+  fromAvatar: string;
+  level: Level;
+  goal: Goal;
+  gymName: string;
+  at: string;
+}
+
+export const REQUESTS_INBOX: IncomingRequest[] = [
+  { id: 'r1', fromName: 'Богдан Мороз', fromAvatar: '🧊', level: 'ADVANCED', goal: 'CUT', gymName: 'SportLife Поділ', at: '2 год тому' },
+  { id: 'r2', fromName: 'Ірина Вознюк', fromAvatar: '🌿', level: 'INTERMEDIATE', goal: 'GENERAL', gymName: 'SportLife Либідська', at: '5 год тому' },
+  { id: 'r3', fromName: 'Владислав Руденко', fromAvatar: '⚡', level: 'BEGINNER', goal: 'MASS', gymName: 'SportLife Поділ', at: 'вчора' },
+];
+
+export interface ScheduledSlot {
+  id: string;
+  day: string;
+  time: string;
+  partnerName: string;
+}
+
+export const SCHEDULE: ScheduledSlot[] = [
+  { id: 's1', day: 'Понеділок', time: '19:00', partnerName: 'Дмитро Савченко' },
+  { id: 's2', day: 'Середа', time: '18:00', partnerName: 'Сергій Мельник' },
+  { id: 's3', day: 'Субота', time: '10:00', partnerName: 'Іван Петренко' },
+];
+
+export const WORKOUT_TYPES = ['Груди', 'Спина', 'Плечі', 'Ноги', 'Руки', 'Кардіо'];
+export const GOAL_METRICS = ['WORKOUT_COUNT', 'TOTAL_KG'];
+
+export interface AdminUserRow {
+  id: string;
+  email: string;
+  name: string;
+  status: 'ACTIVE' | 'BLOCKED';
+  level: Level;
+  goal: Goal;
+  gymName: string;
+  reports: number;
+}
+
+export const ADMIN_USERS: AdminUserRow[] = [
+  { id: 'a1', email: 'toxic@gymbros.dev', name: 'Токсич Токсик', status: 'BLOCKED', level: 'INTERMEDIATE', goal: 'STRENGTH', gymName: 'SportLife Поділ', reports: 3 },
+  { id: 'a2', email: 'oleksii@gymbros.dev', name: 'Олексій Коваль', status: 'ACTIVE', level: 'BEGINNER', goal: 'MASS', gymName: 'SportLife Поділ', reports: 0 },
+  { id: 'a3', email: 'dmytro@gymbros.dev', name: 'Дмитро Савченко', status: 'ACTIVE', level: 'INTERMEDIATE', goal: 'STRENGTH', gymName: 'SportLife Поділ', reports: 0 },
+  { id: 'a4', email: 'mariia@gymbros.dev', name: 'Марія Шевченко', status: 'ACTIVE', level: 'BEGINNER', goal: 'CUT', gymName: 'SportLife Поділ', reports: 1 },
+  { id: 'a5', email: 'andrii@gymbros.dev', name: 'Андрій Ткаченко', status: 'ACTIVE', level: 'ADVANCED', goal: 'ENDURANCE', gymName: 'SportLife Либідська', reports: 0 },
+];
+
+export const ADMIN_LOGIN = { email: 'admin@gymbros.dev', password: 'admin1234' };

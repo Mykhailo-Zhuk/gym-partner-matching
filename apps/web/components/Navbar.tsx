@@ -4,10 +4,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const LINKS = [
-  { href: '/matches', label: 'Партнери' },
+  { href: '/matches', label: 'Пошук' },
+  { href: '/requests', label: 'Запити' },
+  { href: '/pairs', label: 'Пари' },
   { href: '/chat', label: 'Чат' },
   { href: '/dashboard', label: 'Дашборд' },
   { href: '/profile', label: 'Профіль' },
+  { href: '/admin', label: 'Адмінка' },
 ];
 
 export default function Navbar() {
