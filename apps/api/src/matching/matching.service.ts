@@ -76,25 +76,28 @@ export class MatchingService {
       include: { gym: true },
     });
 
-    // Exclude users with pending/declined requests from this user
-    const existing = await this.prisma.matchRequest.findMany({
-      where: {
-        fromUserId: userId,
-        status: { in: ['PENDING', 'DECLINED'] },
-        toUserId: { in: users.map((u) => u.id) },
-      },
-      select: { toUserId: true },
-    });
+    // Exclude users with pending/declined requests from this user AND already-matched
+    // users. Both exclusion queries are independent — run them concurrently to cut
+    // the endpoint's DB latency on the critical path.
+    const uids = users.map((u) => u.id);
+    const [existing, matched] = await Promise.all([
+      this.prisma.matchRequest.findMany({
+        where: {
+          fromUserId: userId,
+          status: { in: ['PENDING', 'DECLINED'] },
+          toUserId: { in: uids },
+        },
+        select: { toUserId: true },
+      }),
+      this.prisma.match.findMany({
+        where: {
+          status: 'ACTIVE',
+          OR: [{ userAId: userId, userBId: { in: uids } }, { userBId: userId, userAId: { in: uids } }],
+        },
+        select: { userAId: true, userBId: true },
+      }),
+    ]);
     const excluded = new Set(existing.map((r) => r.toUserId));
-
-    // Exclude already-matched users
-    const matched = await this.prisma.match.findMany({
-      where: {
-        status: 'ACTIVE',
-        OR: [{ userAId: userId, userBId: { in: users.map((u) => u.id) } }, { userBId: userId, userAId: { in: users.map((u) => u.id) } }],
-      },
-      select: { userAId: true, userBId: true },
-    });
     for (const m of matched) {
       excluded.add(m.userAId === userId ? m.userBId : m.userAId);
     }
