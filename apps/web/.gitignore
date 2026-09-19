@@ -4,3 +4,4 @@ out/
 dist/
 # deps
 node_modules/
+tsconfig.tsbuildinfo
